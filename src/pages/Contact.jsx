@@ -1,14 +1,54 @@
 import React from "react";
 import "./Contact.css";
 import { useState } from "react";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
 import "./Contact.css";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    message: "", //초기화
+    message: "",
   });
+
+  //firebase추가
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [submitStatus, setSubmitStatus] = useState(null); // 'success' or 'error'
+
+  //
+  const handleSubmit = async (e) => {
+    //async, await 비동기작업
+    e.preventDefault(); //a태그 클릭 시 써주기
+    setIsSubmitting(true); //전송중
+    setSubmitStatus(null);
+
+    //try제대로 작동 시, catch뭔가 오류났을 때, finally오류 났든 안 났든
+    try {
+      // Firebase Firestore에 데이터 저장
+      await addDoc(collection(db, "contacts"), {
+        //addDo; firestore저장명령어
+        name: formData.name,
+        email: formData.email,
+        message: formData.message,
+        timestamp: serverTimestamp(), //서버시간 기록
+      });
+
+      // 성공 메시지
+      setSubmitStatus("success");
+      alert("Thank you for your message! Your message has been saved.");
+      setFormData({ name: "", email: "", message: "" }); //폼 초기화
+    } catch (error) {
+      // 에러 처리
+      console.error("Error saving contact:", error);
+      setSubmitStatus("error");
+      alert("Failed to send message. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -17,11 +57,6 @@ export default function Contact() {
       //...formData 기존값 복사해서 가지고 옴
       //e.target.value 키보드 입력한 값
     });
-  };
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert("메시지가 전송되었습니다.!(데모)");
-    setFormData({ name: "", email: "", message: "" }); //전송버튼 누르면 초기화
   };
 
   return (
@@ -83,9 +118,24 @@ export default function Contact() {
             ></textarea>
           </div>
 
-          <button type="submit" className="submit-button">
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Sending..." : "Send Message"}
             전송하기
           </button>
+          {submitStatus === "success" && (
+            <p style={{ color: "#10b981", textAlign: "center" }}>
+              Message sent successfully!
+            </p>
+          )}
+          {submitStatus === "error" && (
+            <p style={{ color: "#ef4444", textAlign: "center" }}>
+              Failed to send message. Please try again.
+            </p>
+          )}
         </form>
       </div>
     </div>
